@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { encrypt, decrypt } from "./crypto/index.js";
-import type { TxSecureRecord, EncryptInput } from "./crypto/index.js";
+import { encrypt, decrypt } from "../src/crypto/index.js";
+import type { TxSecureRecord, EncryptInput } from "../src/crypto/index.js";
 
 // MASTER_KEY check moved inside handlers to prevent startup crash
 const MASTER_KEY = process.env.MASTER_KEY_HEX;
