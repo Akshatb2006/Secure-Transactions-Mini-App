@@ -1,8 +1,8 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import dotenv from "dotenv";
-import { encrypt, decrypt } from "@repo/crypto";
-import type { TxSecureRecord, EncryptInput } from "@repo/crypto";
+import { encrypt, decrypt } from "./crypto/index.js";
+import type { TxSecureRecord, EncryptInput } from "./crypto/index.js";
 
 // Load env vars from root .env
 dotenv.config({ path: "../../.env" });
