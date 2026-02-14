@@ -1,1 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+.next/
+.turbo/
+
+# Env
+.env
+.env.local
+
+# IDE
 .claude
+.vscode/
+
+# OS
+.DS_Store
