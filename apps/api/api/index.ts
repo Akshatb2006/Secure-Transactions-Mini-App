@@ -3,10 +3,8 @@ import cors from "@fastify/cors";
 import { encrypt, decrypt } from "@repo/crypto";
 import type { TxSecureRecord, EncryptInput } from "@repo/crypto";
 
+// MASTER_KEY check moved inside handlers to prevent startup crash
 const MASTER_KEY = process.env.MASTER_KEY_HEX;
-if (!MASTER_KEY) {
-    throw new Error("MASTER_KEY_HEX environment variable is required");
-}
 
 // In-memory storage (note: resets on cold start in serverless)
 const store = new Map<string, TxSecureRecord>();
@@ -24,6 +22,7 @@ app.post<{ Body: EncryptInput }>("/tx/encrypt", async (request, reply) => {
         if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
             return reply.status(400).send({ error: "payload is required and must be a JSON object" });
         }
+        if (!MASTER_KEY) throw new Error("Server Misconfiguration: MASTER_KEY_HEX is missing");
         const record = encrypt({ partyId, payload }, MASTER_KEY);
         store.set(record.id, record);
         return reply.status(201).send(record);
@@ -43,6 +42,7 @@ app.post<{ Params: { id: string } }>("/tx/:id/decrypt", async (request, reply) =
     const record = store.get(request.params.id);
     if (!record) return reply.status(404).send({ error: `Record ${request.params.id} not found` });
     try {
+        if (!MASTER_KEY) throw new Error("Server Misconfiguration: MASTER_KEY_HEX is missing");
         const payload = decrypt(record, MASTER_KEY);
         return reply.send({ id: record.id, partyId: record.partyId, payload });
     } catch (err: unknown) {
