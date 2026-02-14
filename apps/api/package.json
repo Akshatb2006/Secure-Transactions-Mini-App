@@ -4,7 +4,7 @@
     "type": "module",
     "main": "./dist/server.js",
     "scripts": {
-        "build": "tsc",
+        "build": "cd ../.. && npx turbo run build --filter=@repo/crypto && cd apps/api && tsc",
         "dev": "tsx watch src/server.ts",
         "start": "node dist/server.js"
     },
