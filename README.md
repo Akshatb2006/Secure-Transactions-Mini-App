@@ -1,163 +1,121 @@
-# 🚀 Mirfa Software Engineer Intern Challenge
-## Secure Transactions Mini-App (Turbo + Fastify + Vercel)
+# 🔐 Secure Transactions Mini-App
 
-Welcome 👋
-
-This is **not a coding test**.
-
-This challenge simulates a **real engineering task** you might receive on your first week at Mirfa.
-
-Instead of solving algorithm puzzles, you will:
-
-- structure a real monorepo
-- design an API
-- implement encryption correctly
-- deploy to production
-- explain your thinking
-
-If you enjoy building real systems end-to-end, you’ll probably enjoy this 🙂
+> A minimal secure transaction service demonstrating **envelope encryption**, **monorepo architecture**, and **production deployment** using modern TypeScript tooling.
 
 ---
 
-# 🎯 What we evaluate
+## 📋 Table of Contents
 
-We care about:
-
-- problem solving
-- system design
-- clean code
-- correctness
-- debugging skills
-- deployment ability
-- ownership & clarity
-
-We **do NOT** care about:
-
-- fancy UI
-- perfect styling
-- trick algorithms
-- memorized LeetCode problems
+- [Overview](#-overview)
+- [Architecture](#-architecture)
+- [Tech Stack](#-tech-stack)
+- [Encryption Design](#-encryption-design)
+- [Data Model](#-data-model)
+- [API Endpoints](#-api-endpoints)
+- [Frontend](#-frontend)
+- [Validation & Security](#-validation--security)
+- [Tests](#-tests)
+- [Key Design Decisions](#-key-design-decisions)
+- [Deployment](#-deployment)
+- [Running Locally](#-running-locally)
 
 ---
 
-# ⏱ Timebox
+## 🧭 Overview
 
-Expected effort: **6–10 hours total**
+This project simulates a **real engineering task** involving:
 
-Deadline: **submit within 2–3 days**
-
-You may use:
-- Google
-- StackOverflow
-- ChatGPT / Claude / LLMs
-
-But you **must fully understand and explain your solution**.
-
-If you cannot explain it, we assume you did not build it.
+- Monorepo architecture with TurboRepo
+- Secure API design with Fastify
+- AES-256-GCM envelope encryption
+- Next.js frontend integration
+- Production deployment to Vercel
 
 ---
 
-# 🧩 What you will build
+## 🧱 Architecture
 
-Create a **TurboRepo monorepo** containing:
+The project uses a **TurboRepo monorepo** to share code between applications.
 
-apps/web → Next.js frontend
-apps/api → Fastify backend
-packages/crypto → shared encryption logic
-
-
-The app should allow a user to:
-
-1. Enter a JSON payload + partyId
-2. Encrypt & store it
-3. Retrieve encrypted record
-4. Decrypt it back to original
-
-Think of this as a **mini secure transaction service**.
-
----
-
-# 🛠 Tech Requirements
-
-Please use:
-
-- Node.js 20+
-- pnpm
-- TurboRepo
-- Fastify (API)
-- Next.js (Web)
-- TypeScript
-- Vercel deployment
-
-Project must run locally with:
-
-pnpm install
-pnpm dev
-
-
----
-
-# 📦 Functional Requirements
-
-## Backend (Fastify)
-
-### POST `/tx/encrypt`
-
-Input:
-
-```json
-{
-  "partyId": "party_123",
-  "payload": { "amount": 100, "currency": "AED" }
-}
 ```
-Output: encrypted record
+secure-tx-app/
+│
+├── apps/
+│   ├── web/        # Next.js frontend
+│   └── api/        # Fastify backend
+│
+├── packages/
+│   └── crypto/     # Shared encryption logic
+│
+├── turbo.json
+├── pnpm-workspace.yaml
+└── package.json
+```
 
-### GET /tx/:id
+### Apps
 
-Return stored encrypted record (no decrypt)
+| App | Description |
+|-----|-------------|
+| `apps/web` | Next.js UI for creating and retrieving transactions |
+| `apps/api` | Fastify server exposing encryption endpoints |
 
-### POST /tx/:id/decrypt
-Return original decrypted payload
+### Packages
 
-### Storage can be:
+| Package | Description |
+|---------|-------------|
+| `packages/crypto` | Envelope encryption implementation using AES-256-GCM |
 
-in-memory Map ✅ fine
+---
 
-SQLite/Postgres ✅ bonus
+## ⚙️ Tech Stack
 
-### 💻 Frontend (Next.js)
-Single page is enough:
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Node.js | 20 | Runtime |
+| TypeScript | Latest | Type safety |
+| pnpm | Latest | Package management |
+| TurboRepo | Latest | Monorepo orchestration |
+| Fastify | Latest | Backend API server |
+| Next.js | Latest | Frontend framework |
+| Vercel | — | Deployment |
 
-input: partyId
+---
 
-textarea: JSON payload
+## 🔐 Encryption Design
 
-Encrypt & Save
+The system uses **Envelope Encryption**. Instead of encrypting data directly with a master key, a **Data Encryption Key (DEK)** is generated per transaction.
 
-Fetch
+### Flow
 
-Decrypt
+```
+Payload
+  │
+  ▼
+Generate DEK (32 bytes)
+  │
+  ▼
+Encrypt payload with DEK (AES-256-GCM)
+  │
+  ▼
+Wrap DEK with Master Key (AES-256-GCM)
+  │
+  ▼
+Store encrypted payload + wrapped DEK
+```
 
-show results
+### Why AES-256-GCM?
 
-Keep it simple and clean.
+AES-GCM provides:
 
-### 🔐 Core Task — Encryption (Important)
-Implement Envelope Encryption using AES-256-GCM.
+- **Confidentiality** — data is encrypted
+- **Integrity** — authentication tag detects tampering
+- **Tamper detection** — any modification to ciphertext or tag causes decryption to fail
 
-Steps
-Generate random DEK (32 bytes)
+---
 
-Encrypt payload using DEK (AES-256-GCM)
+## 📦 Data Model
 
-Wrap DEK using Master Key (AES-256-GCM)
-
-Store everything
-
-Binary values should be stored as hex strings.
-
-### 📦 Data Model
+```ts
 export type TxSecureRecord = {
   id: string
   partyId: string
@@ -174,52 +132,135 @@ export type TxSecureRecord = {
   alg: "AES-256-GCM"
   mk_version: 1
 }
-#### ✅ Validation Rules
-Must reject if:
+```
 
-nonce is not 12 bytes
+> All binary values are stored as **hex strings**.
 
-tag is not 16 bytes
+---
 
-invalid hex
+## 🚀 API Endpoints
 
-ciphertext tampered
+### `POST /tx/encrypt` — Encrypt Transaction
 
-tag tampered
+**Request**
+```json
+{
+  "partyId": "party_123",
+  "payload": {
+    "amount": 100,
+    "currency": "AED"
+  }
+}
+```
 
-decryption fails
+**Response** — Encrypted `TxSecureRecord` object.
 
-🧪 Tests (optional)
-Write tests verifying:
+---
 
-encrypt → decrypt works
+### `GET /tx/:id` — Get Encrypted Record
 
-tampered ciphertext fails
+Returns the stored encrypted data **without decrypting**.
 
-tampered tag fails
+---
 
-wrong nonce length fails
+### `POST /tx/:id/decrypt` — Decrypt Record
 
-Minimum ~5 tests.
+Returns the **original payload** after decryption.
 
-#### 🚀 Deployment (required)
-Deploy BOTH:
+---
 
-Web → Vercel
+## 💻 Frontend
 
-API → Vercel
+The frontend is a single-page Next.js UI with the following features:
 
-Provide working URLs.
+- Input field for `partyId`
+- JSON textarea for the transaction payload
+- Action buttons:
+  - **Encrypt & Save**
+  - **Fetch Record**
+  - **Decrypt**
+- Display panels for encrypted and decrypted results
 
-#### 🎥 Loom Video (very important)
-Record a 2–3 minute walkthrough explaining:
+> UI is intentionally minimal — functionality is the focus.
 
-how Turbo is configured
+---
 
-how encryption works
+## 🛡️ Validation & Security
 
-how deployment works
+The system rejects requests when:
 
-one bug you solved
+- Nonce is not 12 bytes
+- Tag is not 16 bytes
+- Hex values are invalid
+- Ciphertext has been tampered with
+- Authentication tag has been modified
+- Decryption fails for any reason
 
-what you'd improve
+These checks ensure **data integrity** and **cryptographic correctness** at every step.
+
+---
+
+## 🧪 Tests
+
+Example test cases included:
+
+- `encrypt → decrypt` returns original payload
+- Tampered ciphertext fails decryption
+- Tampered tag fails decryption
+- Invalid nonce length is rejected
+- Invalid hex input is rejected
+
+---
+
+## 🧠 Key Design Decisions
+
+### Shared Crypto Package
+
+Encryption logic lives in `packages/crypto`, keeping it:
+
+- **Reusable** across apps
+- **Independently testable**
+- **Decoupled** from business logic
+
+### In-Memory Storage
+
+Transactions are stored in a `Map<string, TxSecureRecord>` for:
+
+- **Simplicity** — no external setup required
+- **Portability** — works out of the box for demos
+
+This can be swapped for a persistent store (PostgreSQL, SQLite, Redis) with minimal changes.
+
+---
+
+## 🚀 Deployment
+
+Both applications are deployed via **Vercel**.
+
+| Service | URL |
+|---------|-----|
+| Web | `https://your-web-url.vercel.app` |
+| API | `https://your-api-url.vercel.app` |
+
+---
+
+## 🧑‍💻 Running Locally
+
+### 1. Install dependencies
+
+```bash
+pnpm install
+```
+
+### 2. Start development
+
+```bash
+pnpm dev
+```
+
+This concurrently runs both:
+
+- ⚡ Next.js frontend (`apps/web`)
+- 🔧 Fastify API server (`apps/api`)
+
+---
